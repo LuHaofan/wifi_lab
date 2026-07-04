@@ -165,3 +165,66 @@ class SerialCsiReader:
         finally:
             if log_file is not None:
                 log_file.close()
+
+
+class ReplayCsiReader:
+    """Replays a log file written by SerialCsiReader through the same queue interface."""
+
+    def __init__(
+        self,
+        log_path: str,
+        speed: float = 1.0,
+        on_unparsed: Optional[Callable[[str], None]] = None,
+    ):
+        self.log_path = Path(log_path)
+        self.speed = speed
+        self.on_unparsed = on_unparsed
+        self.queue: "queue.Queue[tuple[str, object]]" = queue.Queue()
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
+    def start(self) -> None:
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop_event.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2)
+            self._thread = None
+
+    def _run(self) -> None:
+        if not self.log_path.exists():
+            self.queue.put(("error", f"Replay file not found: {self.log_path}"))
+            return
+
+        with self.log_path.open("r", encoding="utf-8") as f:
+            lines = [line.rstrip("\n") for line in f if line.strip()]
+
+        if not lines:
+            self.queue.put(("error", f"Replay file is empty: {self.log_path}"))
+            return
+
+        previous_elapsed: Optional[float] = None
+        for line in lines:
+            if self._stop_event.is_set():
+                return
+
+            parsed = parse_log_line(line)
+            if parsed is None:
+                continue
+            elapsed, raw_line = parsed
+
+            sample = parse_csi_line(raw_line)
+            if sample is None:
+                if self.on_unparsed is not None:
+                    self.on_unparsed(raw_line)
+                continue
+
+            if self.speed > 0 and previous_elapsed is not None:
+                gap = (elapsed - previous_elapsed) / self.speed
+                if gap > 0:
+                    time.sleep(gap)
+            previous_elapsed = elapsed
+
+            self.queue.put(("sample", (elapsed, sample)))
