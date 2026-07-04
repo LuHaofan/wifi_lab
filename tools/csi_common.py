@@ -228,3 +228,70 @@ class ReplayCsiReader:
             previous_elapsed = elapsed
 
             self.queue.put(("sample", (elapsed, sample)))
+
+
+DEMO_ADDRESS = "AA:BB:BB:BB:BB:BB"
+
+
+def generate_demo_amplitude(num_subcarriers: int, t: float, rng: np.random.Generator) -> np.ndarray:
+    """Synthetic per-subcarrier amplitude: calm baseline, alternating 4s idle / 4s motion."""
+    motion_phase = int(t // 4.0) % 2
+    base = 10.0 + 2.0 * np.sin(np.linspace(0.0, 2.0 * np.pi, num_subcarriers, dtype=np.float32))
+
+    if motion_phase == 0:
+        noise = rng.normal(scale=0.2, size=num_subcarriers)
+    else:
+        wobble = np.sin(4.0 * t + np.arange(num_subcarriers))
+        noise = rng.normal(scale=3.0, size=num_subcarriers) * wobble
+
+    return (base + noise).astype(np.float32)
+
+
+class DemoCsiReader:
+    """Generates synthetic CSI-like samples so tools can be exercised without hardware."""
+
+    def __init__(self, num_subcarriers: int = EXPECTED_SUBCARRIERS, sample_rate: float = 100.0, seed: int = 0):
+        self.num_subcarriers = num_subcarriers
+        self.sample_rate = sample_rate
+        self.seed = seed
+        self.queue: "queue.Queue[tuple[str, object]]" = queue.Queue()
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
+    def start(self) -> None:
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop_event.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2)
+            self._thread = None
+
+    def _run(self) -> None:
+        rng = np.random.default_rng(self.seed)
+        start_time = time.monotonic()
+        period = 1.0 / self.sample_rate
+        next_tick = start_time
+
+        while not self._stop_event.is_set():
+            elapsed = time.monotonic() - start_time
+            amplitude = generate_demo_amplitude(self.num_subcarriers, elapsed, rng)
+
+            iq_values: list[int] = []
+            for value in amplitude:
+                iq_values.append(0)
+                iq_values.append(int(round(float(value))))
+
+            sample = CsiSample(
+                timestamp_cycles=0,
+                rssi=-50,
+                address=DEMO_ADDRESS,
+                iq_values=iq_values,
+            )
+            self.queue.put(("sample", (elapsed, sample)))
+
+            next_tick += period
+            sleep_time = next_tick - time.monotonic()
+            if sleep_time > 0:
+                time.sleep(sleep_time)
