@@ -29,11 +29,24 @@ injector  ──(spoofed 802.11 frames, channel 1)──▶  sniffer  ──(USB
 | [`injector/`](injector/) | ESP-IDF firmware: raw 802.11 frame injector (the CSI stimulus). |
 | [`sniffer/`](sniffer/) | ESP-IDF firmware: promiscuous CSI capture, streams tagged CSI over serial. |
 | [`tools/`](tools/) | Standalone Python CSI visualization + presence-detection tools (no ESP-IDF needed to run). |
+| [`lab-wifi-csi-sensing.md`](lab-wifi-csi-sensing.md) | The student lab handout: goals, schedule, tasks, and deliverables. |
+| [`environment-setup.md`](environment-setup.md) | Pre-lab setup guide (ESP-IDF, USB drivers, Python, Wireshark). |
 | [`docs/`](docs/) | Design specs and implementation plans for the tools. |
 
 Each firmware directory is a self-contained ESP-IDF project (its own
 `CMakeLists.txt`, `main/`, `sdkconfig.ci*`, and editor config). `tools/` is a
 plain Python project and does not participate in the ESP-IDF build.
+
+## Lab Materials
+
+Students should start with the two guides at the repo root:
+
+1. [`environment-setup.md`](environment-setup.md) — complete **before lab day**:
+   installs ESP-IDF, USB drivers, the Python environment (from
+   [`tools/requirements.txt`](tools/requirements.txt)), and Wireshark.
+2. [`lab-wifi-csi-sensing.md`](lab-wifi-csi-sensing.md) — the lab itself: flash
+   the three boards, visualize CSI with the `tools/`, and implement the
+   variance-threshold presence detector.
 
 ## Firmware Quickstart
 
