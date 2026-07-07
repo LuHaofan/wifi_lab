@@ -83,3 +83,4 @@ Desktop.ini
 *.pdf
 .claude/
 .vscode/
+.devcontainer/
