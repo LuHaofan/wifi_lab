@@ -79,10 +79,3 @@ python csi_presence_detect.py --port YOUR_PORT --log run1.txt  # motion detectio
 ```
 
 All tools accept `--demo-signal` to run without hardware.
-
-## Note for Instructors
-
-`docs/` contains the tools' design spec and implementation plan, which include
-**reference solutions** to the student exercise (`MotionDetector` in
-`csi_presence_detect.py`).
-Exclude `docs/` from anything distributed to students.
