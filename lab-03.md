@@ -178,11 +178,9 @@ cd softAP
 1. Connect one ESP32 board by USB to the laptop (mark it as "AP")
 2. Identify its serial port (COM on Windows; `/dev/ttyUSB*` or `/dev/ttyACM*` on Linux; `/dev/cu.*` on macOS). Since there is only one board, the one you detect should be the right one. 
 ![alt text](figures/image-2.png)
-3. Set the channel for the AP:
-In `main/sdkconfig.h` line 339,
-```
-#define CONFIG_ESP_WIFI_CHANNEL 1
-```
+3. Set the channel for the AP using the config menu:
+![alt text](figures/image-9.png)
+![alt text](figures/image-8.png)
 modify the value `1` to any number between 1-12, and note it.
 
 3. Build, flash and monitor: bring up command palette: `Ctrl + Shift + P`, search `Build, Flash and Start a Monitor on Your Device`. A termnial will pop up and starts working. When it's done, you will see the following message in the terminal:
